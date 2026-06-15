@@ -2,15 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using FK.uNody;
 using UnityEditor;
 using UnityEditor.Graphs;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
     using Node = uNody.Node;
-    using NodePort = uNody.NodePort;
+    using NodePort = NodePort;
 
     public partial class NodeGraphEditor
     {
@@ -315,7 +316,7 @@ namespace PuppyDragon.uNodyEditor
             if (autoConnectOutput == null) return;
 
             // Find compatible input port
-            PuppyDragon.uNody.NodePort inputPort = node.Ports.FirstOrDefault(x => x.Direction == NodePort.IO.Input && CanConnect(autoConnectOutput, x));
+            NodePort inputPort = node.Ports.FirstOrDefault(x => x.Direction == NodePort.IO.Input && CanConnect(autoConnectOutput, x));
             if (inputPort != null)
                 autoConnectOutput.Connect(inputPort);
 

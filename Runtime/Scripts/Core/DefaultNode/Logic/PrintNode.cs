@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic
+namespace FK.uNody.Logic
 {
     [NodeWidth(NodeSize.Small)]
     [NodeHeaderTint("#C66D00")]

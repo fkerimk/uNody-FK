@@ -3,19 +3,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using FK.uNody;
+using FK.uNody.Logic;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
-    using PuppyDragon.uNody;
-    using PuppyDragon.uNody.Logic;
-    using PuppyDragon.uNody.Variable;
+    using uNody;
+    using FK.uNody.Logic;
+    using uNody.Variable;
     using Object = UnityEngine.Object;
 
     /// <summary> Base class to derive custom Node Graph editors from. Use this to override how graphs are drawn in the editor. </summary>
     [CustomNodeGraphEditor(typeof(NodeGraph))]
-    public partial class NodeGraphEditor : Internal.NodeEditorBase<NodeGraphEditor, NodeGraphEditor.CustomNodeGraphEditorAttribute, uNody.NodeGraph>
+    public partial class NodeGraphEditor : Internal.NodeEditorBase<NodeGraphEditor, NodeGraphEditor.CustomNodeGraphEditorAttribute, NodeGraph>
     {
         private Rect[] rects;
         private NodeGraph drawTarget;
@@ -216,7 +218,7 @@ namespace PuppyDragon.uNodyEditor
         /// <summary>
         /// Called before connecting two ports in the graph view to see if the output port is compatible with the input port
         /// </summary>
-        public virtual bool CanConnect(uNody.NodePort output, uNody.NodePort input)
+        public virtual bool CanConnect(NodePort output, NodePort input)
             => output.CanConnectTo(input);
 
         /// <summary>
@@ -226,7 +228,7 @@ namespace PuppyDragon.uNodyEditor
         /// <param name="menu"></param>
         /// <param name="compatibleType">Use it to filter only nodes with ports value type, compatible with this type</param>
         /// <param name="direction">Direction of the compatiblity</param>
-        public virtual void AddContextMenuItems(AdvancedGenericMenu menu, Type compatibleType = null, uNody.NodePort.IO direction = uNody.NodePort.IO.Input)
+        public virtual void AddContextMenuItems(AdvancedGenericMenu menu, Type compatibleType = null, NodePort.IO direction = NodePort.IO.Input)
         {
             EditorGUIUtility.SetIconSize(new Vector2(32f, 32f));
             Vector2 nodePosition = WindowToGridPosition(Event.current.mousePosition);
@@ -409,9 +411,9 @@ namespace PuppyDragon.uNodyEditor
         }
 
         /// <summary> Creates a copy of the original node in the graph </summary>
-        public virtual uNody.Node CopyNode(uNody.Node original) {
+        public virtual Node CopyNode(Node original) {
             Undo.RecordObject(target, "Duplicate Node");
-            uNody.Node node = target.CopyNode(original);
+            Node node = target.CopyNode(original);
             Undo.RegisterCreatedObjectUndo(node, "Duplicate Node");
             node.name = original.name;
 
@@ -434,12 +436,12 @@ namespace PuppyDragon.uNodyEditor
         }
 
         /// <summary> Return false for nodes that can't be removed </summary>
-        public virtual bool CanRemove(uNody.Node node)
+        public virtual bool CanRemove(Node node)
         {
             // Check graph attributes to see if this node is required
             var graphType = target.GetType();
-            uNody.NodeGraph.RequireNodeAttribute[] attribs = Array.ConvertAll(
-                graphType.GetCustomAttributes(typeof(uNody.NodeGraph.RequireNodeAttribute), true), x => x as uNody.NodeGraph.RequireNodeAttribute);
+            NodeGraph.RequireNodeAttribute[] attribs = Array.ConvertAll(
+                graphType.GetCustomAttributes(typeof(NodeGraph.RequireNodeAttribute), true), x => x as NodeGraph.RequireNodeAttribute);
             if (attribs.Any(x => x.Requires(node.GetType())))
             {
                 if (target.Nodes.Count(x => x.GetType() == node.GetType()) <= 1)
@@ -502,7 +504,7 @@ namespace PuppyDragon.uNodyEditor
                 return;
             else
             {
-                uNody.NodeGraph existingGraph = AssetDatabase.LoadAssetAtPath<uNody.NodeGraph>(path);
+                NodeGraph existingGraph = AssetDatabase.LoadAssetAtPath<NodeGraph>(path);
                 if (existingGraph != null)
                     AssetDatabase.DeleteAsset(path);
 

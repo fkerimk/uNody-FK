@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic
+namespace FK.uNody.Logic
 {
     [NodeWidth(NodeSize.Mini)]
     [NodeIcon(NodeStyles.Icon.Stop)]

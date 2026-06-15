@@ -3,13 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using FK.uNody;
+using FK.uNody.Logic;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
-    using PuppyDragon.uNody;
-    using PuppyDragon.uNody.Logic;
+    using uNody;
+    using FK.uNody.Logic;
 
     /// <summary> Contains reflection-related extensions built for PuppyDragon.uNody </summary>
     public static class NodeEditorReflection
@@ -84,7 +86,7 @@ namespace PuppyDragon.uNodyEditor
         public static bool TryGetAttributeBodyTint(this Type nodeType, out Color tint)
         {
             if (nodeBodyTint == null)
-                CacheAttributes<Color, uNody.Node.NodeBodyTintAttribute>(ref nodeBodyTint, x => x.color);
+                CacheAttributes<Color, Node.NodeBodyTintAttribute>(ref nodeBodyTint, x => x.color);
 
             return nodeBodyTint.TryGetValue(nodeType, out tint);
         }
@@ -93,7 +95,7 @@ namespace PuppyDragon.uNodyEditor
         public static bool TryGetAttributeWidth(this Type nodeType, out int width)
         {
             if (nodeWidth == null)
-                CacheAttributes<int, uNody.Node.NodeWidthAttribute>(ref nodeWidth, x => x.width);
+                CacheAttributes<int, Node.NodeWidthAttribute>(ref nodeWidth, x => x.width);
 
             return nodeWidth.TryGetValue(nodeType, out width);
         }
@@ -137,7 +139,7 @@ namespace PuppyDragon.uNodyEditor
             // If we can't find field in the first run, it's probably a private field in a base class.
             var field = type.GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             // Search base classes for private fields only. Public fields are found above
-            while (field == null && (type = type.BaseType) != typeof(uNody.Node))
+            while (field == null && (type = type.BaseType) != typeof(Node))
                 field = type.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
 
             return field;

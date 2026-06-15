@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic.Unity
+namespace FK.uNody.Logic.Unity
 {
     [NodeWidth(NodeSize.Large)]
     [CreateNodeMenu(-6, true)]

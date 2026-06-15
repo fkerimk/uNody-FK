@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     public static class NodeEditorStyles
     {
         private static NodeEditorStylesImpl impl;

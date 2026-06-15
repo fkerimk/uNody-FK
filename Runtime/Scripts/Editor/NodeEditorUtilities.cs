@@ -1,15 +1,15 @@
-﻿using PuppyDragon.uNody;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using FK.uNody;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     /// <summary> A set of editor-only utilities and extensions for PuppyDragon.uNody </summary>
     public static class NodeEditorUtilities {
 
@@ -182,7 +182,7 @@ namespace PuppyDragon.uNodyEditor {
         /// <param name="nodeTypes">List with all nodes type to filter</param>
         /// <param name="compatibleType">Compatible Type to Filter</param>
         /// <returns>Return Only Node Types with ports compatible, or an empty list</returns>
-        public static List<Type> GetCompatibleNodesTypes(Type[] nodeTypes, Type compatibleType, uNody.NodePort.IO direction = uNody.NodePort.IO.Input)
+        public static List<Type> GetCompatibleNodesTypes(Type[] nodeTypes, Type compatibleType, NodePort.IO direction = NodePort.IO.Input)
         {
             //Result List
             var filteredTypes = new List<Type>();

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     public abstract class BlackboardDynamicVar<T> : BlackboardVar
     {

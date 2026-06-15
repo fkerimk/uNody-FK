@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System;
 using System.Reflection;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
     // orgin by https://gist.github.com/Seneral/2c8e7dfe712b9f53c60f80722fbce5bd
     public static class EditorGUIScaler
@@ -44,7 +44,7 @@ namespace PuppyDragon.uNodyEditor
         public static void Init()
         {
             // Fetch rect acessors using Reflection
-            var UnityEngine = Assembly.GetAssembly(typeof(UnityEngine.GUI));
+            var UnityEngine = Assembly.GetAssembly(typeof(GUI));
             var guiClipType = UnityEngine.GetType("UnityEngine.GUIClip", true);
 
             var topMostRect = guiClipType.GetProperty("topmostRect", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);

@@ -5,11 +5,13 @@ using UnityEditor;
 using UnityEditor.AnimatedValues;
 using UnityEngine;
 using System.Reflection;
+using FK.uNody;
+using FK.uNody.Logic;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
-    using PuppyDragon.uNody;
-    using PuppyDragon.uNody.Logic;
+    using uNody;
+    using FK.uNody.Logic;
     using System.Linq;
 
     public partial class NodeGraphEditor
@@ -100,7 +102,7 @@ namespace PuppyDragon.uNodyEditor
         /// <summary> Returned gradient is used to color noodles </summary>
         /// <param name="output"> The output this noodle comes from. Never null. </param>
         /// <param name="input"> The output this noodle comes from. Can be null if we are dragging the noodle. </param>
-        public virtual Gradient GetNoodleGradient(uNody.NodePort output, uNody.NodePort input)
+        public virtual Gradient GetNoodleGradient(NodePort output, NodePort input)
         {
             Gradient grad = new Gradient();
 
@@ -130,7 +132,7 @@ namespace PuppyDragon.uNodyEditor
         /// <summary> Returned float is used for noodle thickness </summary>
         /// <param name="output"> The output this noodle comes from. Never null. </param>
         /// <param name="input"> The output this noodle comes from. Can be null if we are dragging the noodle. </param>
-        public virtual float GetNoodleThickness(uNody.NodePort output, uNody.NodePort input)
+        public virtual float GetNoodleThickness(NodePort output, NodePort input)
             => NodeEditorPreferences.GetSettings(this).noodleThickness;
 
         public void BeginZoom(Rect rect, float zoom)
@@ -213,10 +215,10 @@ namespace PuppyDragon.uNodyEditor
             {
                 contextMenu.AddSeparator("");
 
-                if (hoveredPort.Direction == uNody.NodePort.IO.Input)
-                    AddContextMenuItems(contextMenu, hoveredPort.ValueType, uNody.NodePort.IO.Output);
+                if (hoveredPort.Direction == NodePort.IO.Input)
+                    AddContextMenuItems(contextMenu, hoveredPort.ValueType, NodePort.IO.Output);
                 else
-                    AddContextMenuItems(contextMenu, hoveredPort.ValueType, uNody.NodePort.IO.Input);
+                    AddContextMenuItems(contextMenu, hoveredPort.ValueType, NodePort.IO.Input);
             }
             contextMenu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
             if (NodeEditorPreferences.GetSettings(target).autoSave) AssetDatabase.SaveAssets();
@@ -853,7 +855,7 @@ namespace PuppyDragon.uNodyEditor
                 onValidate.Invoke(Selection.activeObject, null);
         }
 
-        private bool ShouldBeCulled(uNody.Node node)
+        private bool ShouldBeCulled(Node node)
         {
             Vector2 nodePos = GridToWindowPositionNoClipped(node.NodePosition);
 
@@ -892,7 +894,7 @@ namespace PuppyDragon.uNodyEditor
             Rect rect = new Rect(Event.current.mousePosition, size);
             if (hoveredPort != null)
             {
-                if (hoveredPort.Direction == uNody.NodePort.IO.Input)
+                if (hoveredPort.Direction == NodePort.IO.Input)
                     rect.position -= size;
                 else
                     rect.position = new Vector2(rect.position.x, rect.position.y - size.y);

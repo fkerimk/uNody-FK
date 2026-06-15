@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Demo
+namespace FK.uNody.Demo
 {
 
     public class NodeGraphController : MonoBehaviour

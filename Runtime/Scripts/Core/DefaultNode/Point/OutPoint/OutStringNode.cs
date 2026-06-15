@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.OutPoint
+namespace FK.uNody.OutPoint
 {
     public class OutStringNode : OutPointNode<string> { }
 }

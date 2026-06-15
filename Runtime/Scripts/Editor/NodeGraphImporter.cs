@@ -1,12 +1,12 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using FK.uNody;
 using UnityEditor;
 using UnityEditor.Experimental.AssetImporters;
 using UnityEngine;
-using PuppyDragon.uNody;
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     /// <summary> Deals with modified assets </summary>
     class NodeGraphImporter : AssetPostprocessor {
         private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths) {

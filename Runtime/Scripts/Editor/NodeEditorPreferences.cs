@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using FK.uNody;
+using FK.uNodyEditor.Logic;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
     using Codice.Client.BaseCommands;
-    using PuppyDragon.uNody;
-    using PuppyDragon.uNodyEditor.Logic;
+    using uNody;
+    using Logic;
 
     public static class NodeEditorPreferences
     {
@@ -311,7 +313,7 @@ namespace PuppyDragon.uNodyEditor
             return color;
         }
 
-        [System.Serializable]
+        [Serializable]
         public class Settings : ISerializationCallbackReceiver
         {
             public Color32 gridLargeLineColor = new Color32(14, 14, 14, 255);

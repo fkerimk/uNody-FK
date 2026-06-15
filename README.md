@@ -1,3 +1,7 @@
+## uNody FK
+
+This project is a fork of [uNody](https://github.com/GP-PDG/uNody). The original code is licensed under the MIT License (see [LICENSE-original](./LICENSE-original)). Modifications and new code are licensed under the MIT License by [fkerimk](https://github.com/fkerimk).
+
 ## uNody
 
 uNody is a node editor built on xNode with enhanced custom editor compatibility and new features like logic graphs, sub-graphs, a Blackboard, and custom variables.

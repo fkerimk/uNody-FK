@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEditor.Graphs;
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     [CreateAssetMenu(fileName = "Blackboard", menuName = "uNody/Blackboard")]
     public class Blackboard : ScriptableObject

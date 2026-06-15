@@ -1,7 +1,7 @@
-using PuppyDragon.uNody;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FK.uNody;
 using UnityEditor;
 using UnityEngine;
 #if ODIN_INSPECTOR
@@ -10,15 +10,15 @@ using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
 #endif
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     /// <summary> Base class to derive custom Node editors from. Use this to create your own custom inspectors and editors for your nodes. </summary>
-    [CustomNodeEditor(typeof(uNody.Node))]
-    public class NodeEditor : Internal.NodeEditorBase<NodeEditor, NodeEditor.CustomNodeEditorAttribute, uNody.Node> {
+    [CustomNodeEditor(typeof(Node))]
+    public class NodeEditor : Internal.NodeEditorBase<NodeEditor, NodeEditor.CustomNodeEditorAttribute, Node> {
 
         /// <summary> Fires every whenever a node was modified through the editor </summary>
-        public readonly static Dictionary<uNody.NodePort, Vector2> portPositions = new();
+        public readonly static Dictionary<NodePort, Vector2> portPositions = new();
 
-        public static Action<uNody.Node> onUpdateNode;
+        public static Action<Node> onUpdateNode;
         public static Node currentDrawingTarget;
 
 #if ODIN_INSPECTOR

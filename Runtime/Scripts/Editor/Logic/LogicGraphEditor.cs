@@ -1,9 +1,10 @@
+using FK.uNody.Logic;
 using UnityEngine;
 using UnityEditor;
 
-namespace PuppyDragon.uNodyEditor.Logic
+namespace FK.uNodyEditor.Logic
 {
-    using PuppyDragon.uNody.Logic;
+    using FK.uNody.Logic;
 
     [CustomNodeGraphEditor(typeof(LogicGraph))]
     public class LogicGraphEditor : NodeGraphEditor

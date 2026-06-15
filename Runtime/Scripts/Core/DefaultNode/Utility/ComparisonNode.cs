@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Utility
+namespace FK.uNody.Utility
 {
     [NodeWidth(NodeSize.Small)]
     [NodeHeaderTint(typeof(bool))]

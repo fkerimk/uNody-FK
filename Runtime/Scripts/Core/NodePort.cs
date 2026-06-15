@@ -4,9 +4,9 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
-    [System.Serializable]
+    [Serializable]
     public abstract class NodePort
     {
         public enum IO { Input, Output }
@@ -317,7 +317,7 @@ namespace PuppyDragon.uNody
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public class InputPort<T> : NodePort
     {
         [SerializeField]
@@ -355,7 +355,7 @@ namespace PuppyDragon.uNody
         }
     }
 
-    [System.Serializable]
+    [Serializable]
     public class OutputPort<T> : NodePort
     {
         [SerializeField]

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.BlackboardVariable
+namespace FK.uNody.BlackboardVariable
 {
     [NodeHeaderTint(typeof(bool))]
     public class GetLocalBoolNode : GetLocalValueNode<bool>

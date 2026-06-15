@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Utility
+namespace FK.uNody.Utility
 {
     [CreateNodeMenu(-5, true)]
     public class IntComparisonNode : ComparisonNode<int>

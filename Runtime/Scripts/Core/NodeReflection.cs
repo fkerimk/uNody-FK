@@ -1,8 +1,8 @@
 using UnityEngine;
 using System;
-using PuppyDragon.uNody.Logic;
+using FK.uNody.Logic;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     public static class NodeReflection
     {

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic
+namespace FK.uNody.Logic
 {
     [NodeWidth(NodeSize.Small)]
     [CreateNodeMenu(-8, true)]

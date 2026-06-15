@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace PuppyDragon.uNody.Logic
+namespace FK.uNody.Logic
 {
     public interface ILogicNode
     {

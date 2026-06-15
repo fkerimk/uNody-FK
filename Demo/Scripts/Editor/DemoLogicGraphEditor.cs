@@ -1,9 +1,11 @@
 using UnityEngine;
 using System;
+using FK.uNodyEditor;
+using FK.uNodyEditor.Logic;
 
-namespace PuppyDragon.uNody.Logic.Demo
+namespace FK.uNody.Logic.Demo
 {
-    using PuppyDragon.uNodyEditor.Logic;
+    using FK.uNodyEditor.Logic;
 
     // Associate this editor with the TestGraph class
     [CustomNodeGraphEditor(typeof(DemoLogicGraph))]

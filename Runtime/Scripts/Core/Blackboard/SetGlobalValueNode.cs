@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic.BlackboardVariable
+namespace FK.uNody.Logic.BlackboardVariable
 {
     [CreateNodeMenu(true, order = -7)]
     [NodeWidth(NodeSize.Medium)]

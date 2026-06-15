@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Unity
+namespace FK.uNody.Unity
 {
     [NodeWidth(NodeSize.Large)]
     [NodeIcon("GameObject Icon")]

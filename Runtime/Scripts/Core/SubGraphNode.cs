@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     [NodeWidth(NodeSize.Large)]
     [CreateNodeMenu("Sub Graph", -10, true)]
@@ -16,7 +16,7 @@ namespace PuppyDragon.uNody
         {
             if (subGraph == null)
             {
-                subGraph = ScriptableObject.CreateInstance(Graph.GetType()) as NodeGraph;
+                subGraph = CreateInstance(Graph.GetType()) as NodeGraph;
                 subGraph.name = "Sub Graph Body";
 
 #if UNITY_EDITOR

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.BlackboardVariable
+namespace FK.uNody.BlackboardVariable
 {
     [NodeHeaderTint(typeof(float))]
     public class GetLocalFloatNode : GetLocalValueNode<float>

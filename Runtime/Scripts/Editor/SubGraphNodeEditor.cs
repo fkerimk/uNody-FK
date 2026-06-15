@@ -1,12 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
+using FK.uNody;
+using FK.uNody.Logic;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
-    using PuppyDragon.uNody;
-    using PuppyDragon.uNody.Logic;
+    using uNody;
+    using FK.uNody.Logic;
 
     [CustomNodeEditor(typeof(SubGraphNode))]
     public class SubGraphNodeEditor : NodeEditor
@@ -62,7 +64,7 @@ namespace PuppyDragon.uNodyEditor
 
         private void DrawPoint<T>(T point, string portName) where T : Node
         {
-            var pointEditor = NodeEditor.GetEditor(point);
+            var pointEditor = GetEditor(point);
             var portProperty = pointEditor.serializedObject.FindProperty(portName);
             EditorGUILayout.PropertyField(portProperty);
         }

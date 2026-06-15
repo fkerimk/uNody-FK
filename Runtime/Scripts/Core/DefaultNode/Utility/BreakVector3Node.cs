@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Utility
+namespace FK.uNody.Utility
 {
     [NodeWidth(NodeSize.Small)]
     [NodeHeaderTint(typeof(Vector3))]

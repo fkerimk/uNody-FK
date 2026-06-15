@@ -2,7 +2,7 @@
 using UnityEngine;
 using System.IO;
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     /// <summary> Deals with modified assets </summary>
     class NodeEditorAssetModProcessor : AssetModificationProcessor {
 

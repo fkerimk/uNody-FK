@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic
+namespace FK.uNody.Logic
 {
 
     [CreateAssetMenu(fileName = "Logic Graph", menuName = "uNody/Logic Graph")]

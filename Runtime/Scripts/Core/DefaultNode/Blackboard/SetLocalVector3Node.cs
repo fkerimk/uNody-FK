@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic.BlackboardVariable
+namespace FK.uNody.Logic.BlackboardVariable
 {
     [NodeHeaderTint(typeof(Vector3))]
     public class SetLocalVector3Node : SetLocalValueNode<Vector3>

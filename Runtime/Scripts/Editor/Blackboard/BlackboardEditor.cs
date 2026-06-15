@@ -1,10 +1,11 @@
+using FK.uNody;
 using UnityEditor;
 using UnityEngine;
 using UnityEditorInternal;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
-    using PuppyDragon.uNody;
+    using uNody;
     using System.Collections.Generic;
     using System.Linq;
 

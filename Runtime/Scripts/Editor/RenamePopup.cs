@@ -1,7 +1,8 @@
+using FK.uNody;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     /// <summary> Utility for renaming assets </summary>
     public class RenamePopup : EditorWindow {
         private const string inputControlName = "nameInput";
@@ -14,7 +15,7 @@ namespace PuppyDragon.uNodyEditor {
 
         /// <summary> Show a rename popup for an asset at mouse position. Will trigger reimport of the asset on apply.
         public static RenamePopup Show(Object target, float width = 200) {
-            RenamePopup window = EditorWindow.GetWindow<RenamePopup>(true, "Rename " + target.name, true);
+            RenamePopup window = GetWindow<RenamePopup>(true, "Rename " + target.name, true);
             if (current != null) current.Close();
             current = window;
             window.target = target;
@@ -52,9 +53,9 @@ namespace PuppyDragon.uNodyEditor {
             if (input == null || input.Trim() == "") {
                 if (GUILayout.Button("Revert to default") || (e.isKey && e.keyCode == KeyCode.Return)) {
                     target.name = NodeEditorUtilities.NodeDefaultName(target.GetType());
-                    NodeEditor.GetEditor((uNody.Node)target).OnRename();
+                    NodeEditor.GetEditor((Node)target).OnRename();
                     if (!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(target))) {
-                        AssetDatabase.SetMainObject((target as PuppyDragon.uNody.Node).Graph, AssetDatabase.GetAssetPath(target));
+                        AssetDatabase.SetMainObject((target as Node).Graph, AssetDatabase.GetAssetPath(target));
                         AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(target));
                     }
                     Close();
@@ -64,7 +65,7 @@ namespace PuppyDragon.uNodyEditor {
             // Rename asset to input text
             else {
                 if (GUILayout.Button("Apply") || (e.isKey && e.keyCode == KeyCode.Return)) {
-                    var editor = NodeEditor.GetEditor((uNody.Node)target);
+                    var editor = NodeEditor.GetEditor((Node)target);
                     editor.Rename(input);
                     Close();
                     target.TriggerOnValidate();

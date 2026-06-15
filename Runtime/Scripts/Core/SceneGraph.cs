@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     /// <summary> Lets you instantiate a node graph in the scene. This allows you to reference in-scene objects. </summary>
     public class SceneGraph : MonoBehaviour

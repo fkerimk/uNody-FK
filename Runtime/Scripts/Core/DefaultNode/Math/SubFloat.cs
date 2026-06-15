@@ -1,7 +1,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Math
+namespace FK.uNody.Math
 {
     [NodeWidth(NodeSize.Small)]
     [CreateNodeMenu(true)]

@@ -1,9 +1,9 @@
-using PuppyDragon.uNody;
 using UnityEditor;
 using UnityEngine;
 using System;
+using FK.uNody;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
     [CustomEditor(typeof(SceneGraph), true)]
     public class SceneGraphEditor : Editor
@@ -91,7 +91,7 @@ namespace PuppyDragon.uNodyEditor
         public void CreateGraph(Type type)
         {
             Undo.RecordObject(sceneGraph, "Create Graph");
-            sceneGraph.graph = ScriptableObject.CreateInstance(type) as NodeGraph;
+            sceneGraph.graph = CreateInstance(type) as NodeGraph;
             sceneGraph.graph.name = sceneGraph.name;
         }
     }

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace PuppyDragon.uNody.Logic
+namespace FK.uNody.Logic
 {
     [CreateNodeMenu(-8, true)]
     public class WhileNode : LogicNode

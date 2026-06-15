@@ -3,9 +3,9 @@ using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;
 using System;
-using PuppyDragon.uNody;
+using FK.uNody;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
     public class NodeEditorWindow : EditorWindow
     {

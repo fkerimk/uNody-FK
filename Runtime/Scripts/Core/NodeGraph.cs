@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEditor.Graphs;
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     [CreateAssetMenu(fileName = "Node Graph", menuName = "uNody/Node Graph")]
     public class NodeGraph : ScriptableObject, ISerializationCallbackReceiver
@@ -149,7 +149,7 @@ namespace PuppyDragon.uNody
         public virtual Node AddNode(Type type)
         {
             Node.graphHotfix = this;
-            Node node = ScriptableObject.CreateInstance(type) as Node;
+            Node node = CreateInstance(type) as Node;
             nodes.Add(node);
 
             if (NodeReflection.IsInPoint(type))
@@ -163,7 +163,7 @@ namespace PuppyDragon.uNody
         /// <summary> Creates a copy of the original node in the graph </summary>
         public virtual Node CopyNode(Node original) {
             Node.graphHotfix = this;
-            Node node = ScriptableObject.Instantiate(original);
+            Node node = Instantiate(original);
             node.ClearConnections();
             nodes.Add(node);
 

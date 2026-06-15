@@ -4,7 +4,7 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using UnityEditor;
 
-namespace PuppyDragon.uNodyEditor
+namespace FK.uNodyEditor
 {
     public class AdvancedGenericMenu : AdvancedDropdown
     {

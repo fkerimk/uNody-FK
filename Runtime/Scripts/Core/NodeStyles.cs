@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     public static class NodeStyles
     {

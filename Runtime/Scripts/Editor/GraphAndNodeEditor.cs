@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using FK.uNody;
+using UnityEditor;
 using UnityEngine;
 #if ODIN_INSPECTOR
 using Sirenix.OdinInspector.Editor;
@@ -6,9 +7,9 @@ using Sirenix.Utilities;
 using Sirenix.Utilities.Editor;
 #endif
 
-namespace PuppyDragon.uNodyEditor {
+namespace FK.uNodyEditor {
     /// <summary> Override graph inspector to show an 'Open Graph' button at the top </summary>
-    [CustomEditor(typeof(uNody.NodeGraph), true)]
+    [CustomEditor(typeof(NodeGraph), true)]
 #if ODIN_INSPECTOR
     public class GlobalGraphEditor : OdinEditor
     {
@@ -29,7 +30,7 @@ namespace PuppyDragon.uNodyEditor {
             serializedObject.Update();
 
             if (GUILayout.Button("Edit graph", GUILayout.Height(40)))
-                NodeEditorWindow.Open(serializedObject.targetObject as PuppyDragon.uNody.NodeGraph);
+                NodeEditorWindow.Open(serializedObject.targetObject as NodeGraph);
 
             GUILayout.Space(EditorGUIUtility.singleLineHeight);
             GUILayout.Label("Raw data", "BoldLabel");
@@ -41,7 +42,7 @@ namespace PuppyDragon.uNodyEditor {
     }
 #endif
 
-    [CustomEditor(typeof(uNody.Node), true)]
+    [CustomEditor(typeof(Node), true)]
 #if ODIN_INSPECTOR
     public class GlobalNodeEditor : OdinEditor
     {
@@ -71,7 +72,7 @@ namespace PuppyDragon.uNodyEditor {
             if (GUILayout.Button("Open Graph", GUILayout.Height(30)))
             {
                 SerializedProperty graphProp = serializedObject.FindProperty("graph");
-                NodeEditorWindow w = NodeEditorWindow.Open(graphProp.objectReferenceValue as uNody.NodeGraph);
+                NodeEditorWindow w = NodeEditorWindow.Open(graphProp.objectReferenceValue as NodeGraph);
                 w.Home(); // Focus selected node
             }
 

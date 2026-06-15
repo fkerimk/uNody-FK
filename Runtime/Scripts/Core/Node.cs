@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.Windows;
 
-namespace PuppyDragon.uNody
+namespace FK.uNody
 {
     [Serializable]
     public abstract class Node : ScriptableObject, ISerializationCallbackReceiver
@@ -155,7 +155,7 @@ namespace PuppyDragon.uNody
 
         public IEnumerable<NodePort> GetPorts(string fieldName)
             => ArrayPortsByField.TryGetValue(fieldName, out var ports) ? ports.AsEnumerable() : null;
- 
+
         public bool Contains(string fieldName)
             => PortsByField.ContainsKey(fieldName);
 
