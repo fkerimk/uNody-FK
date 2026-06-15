@@ -32,9 +32,12 @@ namespace FK.uNodyEditor
         private static NodePort draggedOutputTarget = null;
         private List<Vector2> draggedOutputReroutes = new();
 
+        private NodePort draggedInput = null;
+
         private Node hoveredNode = null;
         private NodePort hoveredPort = null;
         private NodePort autoConnectOutput = null;
+        private NodePort autoConnectInput = null;
         private RerouteReference hoveredReroute = null;
 
         private Vector2 dragBoxStart;
@@ -48,7 +51,7 @@ namespace FK.uNodyEditor
         public static bool IsPanning { get; private set; }
         private float DragThreshold => Math.Max(1f, DrawRect.width / 1000f);
 
-        public bool IsDraggingPort => draggedOutput != null;
+        public bool IsDraggingPort => draggedOutput != null || draggedInput != null;
         public bool IsHoveringPort => hoveredPort != null;
         public bool IsHoveringNode => hoveredNode != null;
         public bool IsHoveringReroute => hoveredReroute != null;
@@ -285,20 +288,30 @@ namespace FK.uNodyEditor
         {
             if (IsDraggingPort)
             {
-                var gradient = GetNoodleGradient(draggedOutput, null);
-                float thickness = GetNoodleThickness(draggedOutput, null);
+                NodePort port = draggedOutput ?? draggedInput;
+
+                var gradient = GetNoodleGradient(port, null);
+                float thickness = GetNoodleThickness(port, null);
 
                 var gridPoints = new List<Vector2>();
-                gridPoints.Add(draggedOutput.Rect.center);
+                if (draggedInput != null)
+                {
+                    gridPoints.Add(WindowToGridPosition(Event.current.mousePosition));
+                    for (int i = 0; i < draggedOutputReroutes.Count; i++)
+                        gridPoints.Add(draggedOutputReroutes[i]);
+                    gridPoints.Add(port.Rect.center);
+                }
+                else
+                {
+                    gridPoints.Add(port.Rect.center);
+                    for (int i = 0; i < draggedOutputReroutes.Count; i++)
+                        gridPoints.Add(draggedOutputReroutes[i]);
+                    gridPoints.Add(WindowToGridPosition(Event.current.mousePosition));
+                }
 
-                for (int i = 0; i < draggedOutputReroutes.Count; i++)
-                    gridPoints.Add(draggedOutputReroutes[i]);
-                
-                gridPoints.Add(WindowToGridPosition(Event.current.mousePosition));
+                DrawNoodle(port, null, gradient, thickness, gridPoints);
 
-                DrawNoodle(draggedOutput, null, gradient, thickness, gridPoints);
-
-                var portStyle = GetPortStyle(draggedOutput);
+                var portStyle = GetPortStyle(port);
                 Color bgcol = Color.black;
                 Color frcol = gradient.colorKeys[0].color;
                 bgcol.a = 0.6f;
@@ -339,18 +352,27 @@ namespace FK.uNodyEditor
         /// <summary> Attempt to connect dragged output to target node </summary>
         public void AutoConnect(Node node)
         {
-            if (autoConnectOutput == null) return;
-
-            // Find compatible input port
-            NodePort inputPort = node.Ports.FirstOrDefault(x => x.Direction == NodePort.IO.Input && CanConnect(autoConnectOutput, x));
-            if (inputPort != null)
-                autoConnectOutput.Connect(inputPort);
+            if (autoConnectOutput != null)
+            {
+                // Find compatible input port
+                NodePort inputPort = node.Ports.FirstOrDefault(x => x.Direction == NodePort.IO.Input && CanConnect(autoConnectOutput, x));
+                if (inputPort != null)
+                    autoConnectOutput.Connect(inputPort);
+            }
+            else if (autoConnectInput != null)
+            {
+                // Find compatible output port
+                NodePort outputPort = node.Ports.FirstOrDefault(x => x.Direction == NodePort.IO.Output && CanConnect(x, autoConnectInput));
+                if (outputPort != null)
+                    outputPort.Connect(autoConnectInput);
+            }
 
             // Save changes
             EditorUtility.SetDirty(target);
             if (NodeEditorPreferences.GetSettings(target).autoSave)
                 AssetDatabase.SaveAssets();
             autoConnectOutput = null;
+            autoConnectInput = null;
         }
 
         private void OnDragPerforme()
@@ -384,11 +406,21 @@ namespace FK.uNodyEditor
             {
                 if (IsDraggingPort)
                 {
-                    // Set target even if we can't connect, so as to prevent auto-conn menu from opening erroneously
-                    if (IsHoveringPort && hoveredPort.Direction == NodePort.IO.Input && !draggedOutput.IsConnectedTo(hoveredPort))
-                        draggedOutputTarget = hoveredPort;
-                    else
-                        draggedOutputTarget = null;
+                    if (draggedOutput != null)
+                    {
+                        // Set target even if we can't connect, so as to prevent auto-conn menu from opening erroneously
+                        if (IsHoveringPort && hoveredPort.Direction == NodePort.IO.Input && !draggedOutput.IsConnectedTo(hoveredPort))
+                            draggedOutputTarget = hoveredPort;
+                        else
+                            draggedOutputTarget = null;
+                    }
+                    else if (draggedInput != null)
+                    {
+                        if (IsHoveringPort && hoveredPort.Direction == NodePort.IO.Output && !draggedInput.IsConnectedTo(hoveredPort))
+                            draggedOutputTarget = hoveredPort;
+                        else
+                            draggedOutputTarget = null;
+                    }
                 }
                 else
                 {
@@ -521,6 +553,12 @@ namespace FK.uNodyEditor
                             if (NodeEditor.onUpdateNode != null)
                                 NodeEditor.onUpdateNode(node);
                         }
+                        else
+                        {
+                            draggedInput = hoveredPort;
+                            autoConnectInput = hoveredPort;
+                            draggedOutputReroutes.Clear();
+                        }
                     }
                 }
                 else if (IsHoveringNode && IsHoveringTitle(hoveredNode))
@@ -569,6 +607,7 @@ namespace FK.uNodyEditor
                 // If mousedown on grid background, deselect all
                 else if (!IsHoveringNode)
                 {
+                    isDoubleClick = (eCurrent.clickCount == 2);
                     CurrentActivity = NodeActivity.HoldGrid;
                     if (!eCurrent.control && !eCurrent.shift)
                     {
@@ -587,35 +626,67 @@ namespace FK.uNodyEditor
                 //Port drag release
                 if (IsDraggingPort)
                 {
-                    // If connection is valid, save it
-                    if (draggedOutputTarget != null && CanConnect(draggedOutput, draggedOutputTarget))
+                    if (draggedOutput != null)
                     {
-                        var node = draggedOutputTarget.OwnerNode;
-                        if (target.Nodes.Count != 0)
-                            draggedOutput.Connect(draggedOutputTarget);
-
-                        // ConnectionIndex can be -1 if the connection is removed instantly after creation
-                        int connectionIndex = draggedOutput.GetConnectionIndex(draggedOutputTarget);
-                        if (connectionIndex != -1)
+                        // Output port drag release
+                        if (draggedOutputTarget != null && CanConnect(draggedOutput, draggedOutputTarget))
                         {
-                            draggedOutput.GetConnection(connectionIndex).AddReroutes(draggedOutputReroutes);
+                            var node = draggedOutputTarget.OwnerNode;
+                            if (target.Nodes.Count != 0)
+                                draggedOutput.Connect(draggedOutputTarget);
 
-                            if (NodeEditor.onUpdateNode != null)
-                                NodeEditor.onUpdateNode(node);
+                            // ConnectionIndex can be -1 if the connection is removed instantly after creation
+                            int connectionIndex = draggedOutput.GetConnectionIndex(draggedOutputTarget);
+                            if (connectionIndex != -1)
+                            {
+                                draggedOutput.GetConnection(connectionIndex).AddReroutes(draggedOutputReroutes);
 
-                            EditorUtility.SetDirty(target);
+                                if (NodeEditor.onUpdateNode != null)
+                                    NodeEditor.onUpdateNode(node);
+
+                                EditorUtility.SetDirty(target);
+                            }
+                        }
+                        // Open context menu for auto-connection if there is no target node
+                        else if (draggedOutputTarget == null && NodeEditorPreferences.GetSettings(this).dragToCreate && autoConnectOutput != null)
+                        {
+                            var menu = new AdvancedGenericMenu("Connect");
+                            AddContextMenuItems(menu, draggedOutput.ValueType);
+                            menu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
                         }
                     }
-                    // Open context menu for auto-connection if there is no target node
-                    else if (draggedOutputTarget == null && NodeEditorPreferences.GetSettings(this).dragToCreate && autoConnectOutput != null)
+                    else if (draggedInput != null)
                     {
-                        var menu = new AdvancedGenericMenu("Connect");
-                        AddContextMenuItems(menu, draggedOutput.ValueType);
-                        menu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
+                        // Input port drag release
+                        if (draggedOutputTarget != null && CanConnect(draggedOutputTarget, draggedInput))
+                        {
+                            var node = draggedInput.OwnerNode;
+                            if (target.Nodes.Count != 0)
+                                draggedOutputTarget.Connect(draggedInput);
+
+                            int connectionIndex = draggedOutputTarget.GetConnectionIndex(draggedInput);
+                            if (connectionIndex != -1)
+                            {
+                                draggedOutputTarget.GetConnection(connectionIndex).AddReroutes(draggedOutputReroutes);
+
+                                if (NodeEditor.onUpdateNode != null)
+                                    NodeEditor.onUpdateNode(node);
+
+                                EditorUtility.SetDirty(target);
+                            }
+                        }
+                        // Open context menu for auto-connection if there is no target node
+                        else if (draggedOutputTarget == null && NodeEditorPreferences.GetSettings(this).dragToCreate && autoConnectInput != null)
+                        {
+                            var menu = new AdvancedGenericMenu("Connect");
+                            AddContextMenuItems(menu, draggedInput.ValueType, NodePort.IO.Output);
+                            menu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
+                        }
                     }
 
                     //Release dragged connection
                     draggedOutput = null;
+                    draggedInput = null;
                     draggedOutputTarget = null;
 
                     EditorUtility.SetDirty(target);
@@ -647,6 +718,15 @@ namespace FK.uNodyEditor
                 }
                 else if (!IsHoveringNode)
                 {
+                    if (isDoubleClick)
+                    {
+                        autoConnectOutput = null;
+
+                        var menu = new AdvancedGenericMenu("New Node");
+                        AddContextMenuItems(menu);
+                        menu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
+                    }
+
                     // If click outside node, release field focus
                     if (!IsPanning)
                     {
