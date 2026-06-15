@@ -722,27 +722,37 @@ namespace FK.uNodyEditor
         private void DrawFastNode(NodeEditor nodeEditor, Node node, Vector2 nodePos, Vector2 nodeSize, bool selected, Color guiColor)
         {
             Color originalColor = GUI.color;
-            Color headerColor = nodeEditor.GetHeaderTint();
-            Color bodyColor = nodeEditor.GetBodyTint();
+            Color originalContentColor = GUI.contentColor;
 
             Rect nodeRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, nodeSize.y);
+            float headerHeight = Mathf.Min(30f, nodeSize.y);
+            float footerHeight = 12f;
+            float bodyHeight = nodeSize.y - headerHeight - footerHeight;
+
+            Rect headerRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, headerHeight);
+            Rect bodyRect = new Rect(nodePos.x, nodePos.y + headerHeight, nodeSize.x, bodyHeight);
+            Rect footerRect = new Rect(nodePos.x, nodePos.y + headerHeight + bodyHeight, nodeSize.x, footerHeight);
 
             if (selected)
             {
-                Rect highlightRect = new Rect(nodeRect.position - Vector2.one * 3, nodeRect.size + Vector2.one * 6);
-                EditorGUI.DrawRect(highlightRect, NodeEditorPreferences.GetSettings(this).highlightColor);
+                GUI.color = NodeEditorPreferences.GetSettings(this).highlightColor;
+                GUI.Box(headerRect, GUIContent.none, nodeEditor.GetBodyHighlightStyle());
             }
 
-            EditorGUI.DrawRect(nodeRect, bodyColor);
-
-            float headerHeight = 24f;
-            Rect headerRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, headerHeight);
-            EditorGUI.DrawRect(headerRect, headerColor);
+            GUI.color = nodeEditor.GetHeaderTint();
+            GUI.Box(headerRect, GUIContent.none, nodeEditor.GetHeaderStyle());
 
             GUI.color = Color.white;
             GUI.Label(headerRect, node.name, NodeEditorStyles.NodeHeaderLabel);
 
+            GUI.color = nodeEditor.GetBodyTint();
+            GUI.Box(bodyRect, GUIContent.none, nodeEditor.GetBodyStyle());
+
+            GUI.color = nodeEditor.GetFooterTint();
+            GUI.Box(footerRect, GUIContent.none, nodeEditor.GetFooterStyle());
+
             GUI.color = originalColor;
+            GUI.contentColor = originalContentColor;
         }
 
         private void UpdateFastNodeHoverAndSelection(Node node, Vector2 nodePos, Vector2 nodeSize, Vector2 mousePos, Rect selectionBox)
@@ -943,7 +953,7 @@ namespace FK.uNodyEditor
                         }
                         GUILayout.EndArea();
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not ExitGUIException)
                     {
                         Debug.LogException(ex);
                         GUIUtility.ExitGUI();

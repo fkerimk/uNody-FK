@@ -149,7 +149,18 @@ namespace FK.uNodyEditor
         }
 
         /// <summary> Called when opened by NodeEditorWindow </summary>
-        public virtual void OnEnable() { }
+        public virtual void OnEnable()
+        {
+            Undo.undoRedoPerformed -= OnUndoRedo;
+            Undo.undoRedoPerformed += OnUndoRedo;
+        }
+
+        private void OnUndoRedo()
+        {
+            nodeSizes.Clear();
+            NodeEditor.ClearEditorCache();
+            NodeGraphEditor.ClearEditorCache();
+        }
 
         /// <summary> Called when NodeEditorWindow gains focus </summary>
         public virtual void OnFocus() { }

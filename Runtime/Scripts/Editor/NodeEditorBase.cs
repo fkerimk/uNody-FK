@@ -76,6 +76,11 @@ namespace FK.uNodyEditor.Internal {
                 editors.Remove(target);
         }
 
+        public static void ClearEditorCache()
+        {
+            editors.Clear();
+        }
+
         public static Type GetEditorType(Type type)
 		{
 			if (type == null)
