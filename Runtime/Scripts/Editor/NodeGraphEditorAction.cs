@@ -648,11 +648,10 @@ namespace FK.uNodyEditor
                     selectedReroutes.Clear();
                     SelectNode(hoveredNode, false);
 
-                    // Double click to center node
+                    // Double click to rename node
                     if (isDoubleClick)
                     {
-                        Vector2 nodeDimension = nodeSizes.ContainsKey(hoveredNode) ? nodeSizes[hoveredNode] / 2 : Vector2.zero;
-                        PanOffset = -hoveredNode.NodePosition - nodeDimension;
+                        RenameSelectedNode();
                     }
                 }
 

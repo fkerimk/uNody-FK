@@ -219,6 +219,7 @@ namespace FK.uNodyEditor {
             if (newName == null || newName.Trim() == "")
                 newName = NodeEditorUtilities.NodeDefaultName(target.GetType());
 
+            Undo.RecordObject(target, "Rename Node");
             target.name = newName;
             OnRename();
 
