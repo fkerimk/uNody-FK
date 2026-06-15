@@ -719,59 +719,10 @@ namespace FK.uNodyEditor
             }
         }
 
-        private void DrawFastNode(NodeEditor nodeEditor, Node node, Vector2 nodePos, Vector2 nodeSize, bool selected, Color guiColor)
-        {
-            Color originalColor = GUI.color;
-            Color originalContentColor = GUI.contentColor;
-
-            Rect nodeRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, nodeSize.y);
-            float headerHeight = Mathf.Min(30f, nodeSize.y);
-            float footerHeight = 12f;
-            float bodyHeight = nodeSize.y - headerHeight - footerHeight;
-
-            Rect headerRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, headerHeight);
-            Rect bodyRect = new Rect(nodePos.x, nodePos.y + headerHeight, nodeSize.x, bodyHeight);
-            Rect footerRect = new Rect(nodePos.x, nodePos.y + headerHeight + bodyHeight, nodeSize.x, footerHeight);
-
-            if (selected)
-            {
-                GUI.color = NodeEditorPreferences.GetSettings(this).highlightColor;
-                GUI.Box(headerRect, GUIContent.none, nodeEditor.GetBodyHighlightStyle());
-            }
-
-            GUI.color = nodeEditor.GetHeaderTint();
-            GUI.Box(headerRect, GUIContent.none, nodeEditor.GetHeaderStyle());
-
-            GUI.color = Color.white;
-            GUI.Label(headerRect, node.name, NodeEditorStyles.NodeHeaderLabel);
-
-            GUI.color = nodeEditor.GetBodyTint();
-            GUI.Box(bodyRect, GUIContent.none, nodeEditor.GetBodyStyle());
-
-            GUI.color = nodeEditor.GetFooterTint();
-            GUI.Box(footerRect, GUIContent.none, nodeEditor.GetFooterStyle());
-
-            GUI.color = originalColor;
-            GUI.contentColor = originalContentColor;
-        }
-
-        private void UpdateFastNodeHoverAndSelection(Node node, Vector2 nodePos, Vector2 nodeSize, Vector2 mousePos, Rect selectionBox)
-        {
-            Rect windowRect = new Rect(nodePos, nodeSize);
-            if (windowRect.Contains(mousePos))
-                hoveredNode = node;
-
-            if (CurrentActivity == NodeActivity.DragGrid)
-            {
-                if (windowRect.Overlaps(selectionBox))
-                    nodeSelectionBuffer.Add(node);
-            }
-        }
-
         private void DrawNodes()
         {
             Event eCurrent = Event.current;
-            bool isFastInteraction = IsFastInteraction(eCurrent);
+            bool drawBody = eCurrent.type is EventType.Layout or EventType.Repaint;
 
             if (eCurrent.type == EventType.Layout)
             {
@@ -863,13 +814,6 @@ namespace FK.uNodyEditor
 
                     float nodeWidth = nodeEditor.GetWidth();
 
-                    if (isFastInteraction && nodeSizes.TryGetValue(node, out nodeSize))
-                    {
-                        DrawFastNode(nodeEditor, node, nodePos, nodeSize, selected, guiColor);
-                        UpdateFastNodeHoverAndSelection(node, nodePos, nodeSize, mousePos, selectionBox);
-                        continue;
-                    }
-
                     try
                     {
                         GUILayout.BeginArea(new Rect(nodePos, new Vector2(nodeWidth, 4000)));
@@ -896,19 +840,22 @@ namespace FK.uNodyEditor
                             GUILayout.BeginVertical(nodeEditor.GetBodyStyle());
                             {
                                 GUI.color = Color.white;
-                                EditorGUI.BeginChangeCheck();
 
-                                EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
-                                //Draw node contents
-                                nodeEditor.OnBodyGUI();
-                                EditorGUIUtility.labelWidth = 0;
-                                //If user changed a value, notify other scripts through onUpdateNode
-                                if (EditorGUI.EndChangeCheck())
+                                if (drawBody)
                                 {
-                                    if (NodeEditor.onUpdateNode != null)
-                                        NodeEditor.onUpdateNode(node);
-                                    EditorUtility.SetDirty(node);
-                                    nodeEditor.serializedObject.ApplyModifiedProperties();
+                                    EditorGUI.BeginChangeCheck();
+
+                                    EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
+                                    nodeEditor.OnBodyGUI();
+                                    EditorGUIUtility.labelWidth = 0;
+
+                                    if (EditorGUI.EndChangeCheck())
+                                    {
+                                        if (NodeEditor.onUpdateNode != null)
+                                            NodeEditor.onUpdateNode(node);
+                                        EditorUtility.SetDirty(node);
+                                        nodeEditor.serializedObject.ApplyModifiedProperties();
+                                    }
                                 }
                             }
                             GUILayout.EndVertical();
