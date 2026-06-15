@@ -110,6 +110,8 @@ namespace FK.uNodyEditor
             }
         }
 
+        private int dragUndoGroup = -1;
+
         private void RecalculateDragOffsets(Event current)
         {
             Vector2 mouseGridPosition = WindowToGridPosition(current.mousePosition);
@@ -143,7 +145,10 @@ namespace FK.uNodyEditor
             }
 
             if (dragUndoTargets.Count > 0)
+            {
                 Undo.RecordObjects(dragUndoTargets.ToArray(), "Move Node");
+                dragUndoGroup = Undo.GetCurrentGroup();
+            }
         }
 
         /// <summary> Puts all selected nodes in focus. If no nodes are present, resets view and zoom to to origin </summary>
@@ -368,6 +373,8 @@ namespace FK.uNodyEditor
 
             if (NodeEditorPreferences.GetSettings().zoomToMouse)
                 PanOffset += (1 - oldZoom / Zoom) * (WindowToGridPosition(Event.current.mousePosition) + PanOffset);
+
+            Window?.Repaint();
         }
 
         private void OnMouseDrag()
@@ -470,6 +477,8 @@ namespace FK.uNodyEditor
             Vector2 delta = nodePosition - node.NodePosition;
             if (delta == Vector2.zero)
                 return;
+
+            Undo.RecordObject(node, "Move Node");
 
             node.NodePosition = nodePosition;
 
@@ -615,6 +624,12 @@ namespace FK.uNodyEditor
                 }
                 else if (CurrentActivity == NodeActivity.DragNode)
                 {
+                    if (dragUndoGroup >= 0)
+                    {
+                        Undo.CollapseUndoOperations(dragUndoGroup);
+                        dragUndoGroup = -1;
+                    }
+
                     foreach (var node in draggedNodes)
                     {
                         if (node != null)

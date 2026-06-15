@@ -806,6 +806,8 @@ namespace FK.uNodyEditor
 
                         try
                         {
+                            bool showBodyContent = Zoom >= 0.5f;
+
                             GUILayout.BeginArea(new Rect(nodePos, new Vector2(nodeWidth, 4000)));
                             {
                                 if (selected)
@@ -831,18 +833,21 @@ namespace FK.uNodyEditor
                                 {
                                     GUI.color = Color.white;
 
-                                    EditorGUI.BeginChangeCheck();
-
-                                    EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
-                                    nodeEditor.OnBodyGUI();
-                                    EditorGUIUtility.labelWidth = 0;
-
-                                    if (EditorGUI.EndChangeCheck())
+                                    if (showBodyContent)
                                     {
-                                        if (NodeEditor.onUpdateNode != null)
-                                            NodeEditor.onUpdateNode(node);
-                                        EditorUtility.SetDirty(node);
-                                        nodeEditor.serializedObject.ApplyModifiedProperties();
+                                        EditorGUI.BeginChangeCheck();
+
+                                        EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
+                                        nodeEditor.OnBodyGUI();
+                                        EditorGUIUtility.labelWidth = 0;
+
+                                        if (EditorGUI.EndChangeCheck())
+                                        {
+                                            if (NodeEditor.onUpdateNode != null)
+                                                NodeEditor.onUpdateNode(node);
+                                            EditorUtility.SetDirty(node);
+                                            nodeEditor.serializedObject.ApplyModifiedProperties();
+                                        }
                                     }
                                 }
                                 GUILayout.EndVertical();
