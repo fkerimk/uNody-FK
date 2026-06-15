@@ -19,10 +19,14 @@ namespace FK.uNodyEditor
 
         public enum NodeActivity { Idle, HoldNode, DragNode, HoldGrid, DragGrid }
 
-        public static Vector2[] dragOffset;
         public static Node[] copyBuffer;
 
         public List<RerouteReference> selectedReroutes = new();
+        private readonly List<Node> draggedNodes = new();
+        private readonly List<Vector2> draggedNodeOffsets = new();
+        private readonly List<RerouteReference> draggedReroutes = new();
+        private readonly List<Vector2> draggedRerouteOffsets = new();
+        private readonly List<UnityEngine.Object> dragUndoTargets = new();
 
         private static NodePort draggedOutput = null;
         private static NodePort draggedOutputTarget = null;
@@ -108,21 +112,38 @@ namespace FK.uNodyEditor
 
         private void RecalculateDragOffsets(Event current)
         {
-            dragOffset = new Vector2[Selection.objects.Length + selectedReroutes.Count];
+            Vector2 mouseGridPosition = WindowToGridPosition(current.mousePosition);
 
-            // Selected nodes
-            for (int i = 0; i < Selection.objects.Length; i++)
+            draggedNodes.Clear();
+            draggedNodeOffsets.Clear();
+            draggedReroutes.Clear();
+            draggedRerouteOffsets.Clear();
+            dragUndoTargets.Clear();
+
+            var selectionObjects = Selection.objects;
+            for (int i = 0; i < selectionObjects.Length; i++)
             {
-                if (Selection.objects[i] is Node)
-                {
-                    var node = Selection.objects[i] as Node;
-                    dragOffset[i] = node.NodePosition - WindowToGridPosition(current.mousePosition);
-                }
+                if (selectionObjects[i] is not Node node)
+                    continue;
+
+                draggedNodes.Add(node);
+                draggedNodeOffsets.Add(node.NodePosition - mouseGridPosition);
+                dragUndoTargets.Add(node);
             }
 
-            // Selected reroutes
             for (int i = 0; i < selectedReroutes.Count; i++)
-                dragOffset[Selection.objects.Length + i] = selectedReroutes[i].Value - WindowToGridPosition(current.mousePosition);
+            {
+                var reroute = selectedReroutes[i];
+                draggedReroutes.Add(reroute);
+                draggedRerouteOffsets.Add(reroute.Value - mouseGridPosition);
+
+                var ownerNode = reroute.Port?.OwnerNode;
+                if (ownerNode != null && !dragUndoTargets.Contains(ownerNode))
+                    dragUndoTargets.Add(ownerNode);
+            }
+
+            if (dragUndoTargets.Count > 0)
+                Undo.RecordObjects(dragUndoTargets.ToArray(), "Move Node");
         }
 
         /// <summary> Puts all selected nodes in focus. If no nodes are present, resets view and zoom to to origin </summary>
@@ -379,33 +400,32 @@ namespace FK.uNodyEditor
                             
                             Vector2 mousePos = WindowToGridPosition(eCurrent.mousePosition);
                             // Move selected nodes with offset
-                            for (int i = 0; i < Selection.objects.Length; i++)
+                            for (int i = 0; i < draggedNodes.Count; i++)
                             {
-                                var node = Selection.objects[i] as Node;
+                                var node = draggedNodes[i];
                                 if (node == null)
                                     continue;
 
-                                Undo.RecordObject(node, "Moved Node");
-
-                                Vector2 initial = node.NodePosition;
-                                node.NodePosition = mousePos + dragOffset[i];
+                                Vector2 nodePosition = mousePos + draggedNodeOffsets[i];
                                 if (gridSnap)
                                 {
-                                    node.NodePosition = new Vector2(
-                                        (Mathf.Round((node.NodePosition.x + 8) / 16) * 16) - 8,
-                                        (Mathf.Round((node.NodePosition.y + 8) / 16) * 16) - 8);
+                                    nodePosition = new Vector2(
+                                        (Mathf.Round((nodePosition.x + 8) / 16) * 16) - 8,
+                                        (Mathf.Round((nodePosition.y + 8) / 16) * 16) - 8);
                                 }
+
+                                SetNodePositionFast(node, nodePosition);
                             }
 
-                            for (int i = 0; i < selectedReroutes.Count; i++)
+                            for (int i = 0; i < draggedReroutes.Count; i++)
                             {
-                                Vector2 pos = mousePos + dragOffset[Selection.objects.Length + i];
+                                Vector2 pos = mousePos + draggedRerouteOffsets[i];
                                 if (gridSnap)
                                 {
                                     pos.x = (Mathf.Round(pos.x / 16) * 16);
                                     pos.y = (Mathf.Round(pos.y / 16) * 16);
                                 }
-                                selectedReroutes[i].SetPoint(pos);
+                                draggedReroutes[i].SetPoint(pos);
                             }
                             break;
 
@@ -442,6 +462,22 @@ namespace FK.uNodyEditor
                     PanOffset += eCurrent.delta * Zoom;
                     IsPanning = true;
                 }
+            }
+        }
+
+        private static void SetNodePositionFast(Node node, Vector2 nodePosition)
+        {
+            Vector2 delta = nodePosition - node.NodePosition;
+            if (delta == Vector2.zero)
+                return;
+
+            node.NodePosition = nodePosition;
+
+            foreach (var port in node.Ports)
+            {
+                var rect = port.Rect;
+                rect.position += delta;
+                port.Rect = rect;
             }
         }
 
@@ -579,9 +615,17 @@ namespace FK.uNodyEditor
                 }
                 else if (CurrentActivity == NodeActivity.DragNode)
                 {
-                    var nodes = Selection.objects.Where(x => x is Node).Cast<Node>();
-                    foreach (var node in nodes)
-                        EditorUtility.SetDirty(node);
+                    foreach (var node in draggedNodes)
+                    {
+                        if (node != null)
+                            EditorUtility.SetDirty(node);
+                    }
+
+                    foreach (var reroute in draggedReroutes)
+                    {
+                        if (reroute.Port?.OwnerNode != null)
+                            EditorUtility.SetDirty(reroute.Port.OwnerNode);
+                    }
 
                     if (NodeEditorPreferences.GetSettings(target).autoSave)
                         AssetDatabase.SaveAssets();

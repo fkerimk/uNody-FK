@@ -9,14 +9,20 @@ namespace FK.uNodyEditor
     using System.Collections.Generic;
     using System.Linq;
 
+#if UNITY_6000_3_OR_NEWER
+    using ObjectId = UnityEngine.EntityId;
+#else
+    using ObjectId = System.Int32;
+#endif
+
     [CustomEditor(typeof(Blackboard))]
     public class BlackboardEditor : Editor
     {
         private ReorderableList globalVars;
         private ReorderableList localVars;
 
-        private readonly Dictionary<int, SerializedObject> serializedElementById = new();
-        private readonly Dictionary<int, Dictionary<string, SerializedProperty>> cachedPropertiesById = new();
+        private readonly Dictionary<ObjectId, SerializedObject> serializedElementById = new();
+        private readonly Dictionary<ObjectId, Dictionary<string, SerializedProperty>> cachedPropertiesById = new();
 
         private void OnEnable()
         {
@@ -65,16 +71,16 @@ namespace FK.uNodyEditor
                     return;
                 }
 
-                int instanceId = targetObj.GetInstanceID();
+                ObjectId objectId = GetObjectId(targetObj);
 
                 var lineRect = rect;
                 lineRect.y += 2;
                 lineRect.height = EditorGUIUtility.singleLineHeight;
 
-                if (!serializedElementById.TryGetValue(instanceId, out var serializedElement) || serializedElement == null)
+                if (!serializedElementById.TryGetValue(objectId, out var serializedElement) || serializedElement == null)
                 {
                     serializedElement = new SerializedObject(targetObj);
-                    serializedElementById[instanceId] = serializedElement;
+                    serializedElementById[objectId] = serializedElement;
                 }
 
                 serializedElement.Update();
@@ -111,7 +117,7 @@ namespace FK.uNodyEditor
 
                 if (targetObject != null)
                 {
-                    int id = targetObject.GetInstanceID();
+                    ObjectId id = GetObjectId(targetObject);
                     if (serializedElementById.TryGetValue(id, out var so)) so?.Dispose();
                     serializedElementById.Remove(id);
                     cachedPropertiesById.Remove(id);
@@ -152,12 +158,12 @@ namespace FK.uNodyEditor
                 if (targetObj == null)
                     return EditorGUIUtility.singleLineHeight + 4;
 
-                int instanceId = targetObj.GetInstanceID();
+                ObjectId objectId = GetObjectId(targetObj);
 
-                if (!serializedElementById.TryGetValue(instanceId, out var serializedElement) || serializedElement == null)
+                if (!serializedElementById.TryGetValue(objectId, out var serializedElement) || serializedElement == null)
                 {
                     serializedElement = new SerializedObject(targetObj);
-                    serializedElementById[instanceId] = serializedElement;
+                    serializedElementById[objectId] = serializedElement;
                 }
 
                 var valueProperty = GetCachedSerializedProperty(serializedElement, "value");
@@ -175,15 +181,15 @@ namespace FK.uNodyEditor
                 return null;
 
 #if UNITY_6000_3_OR_NEWER
-            int instanceId = serializedObj.targetObject.GetInstanceID();
+            ObjectId objectId = serializedObj.targetObject.GetEntityId();
 #else
-            int instanceId = serializedObj.targetObject.GetEntityId();
+            ObjectId objectId = serializedObj.targetObject.GetInstanceID();
 #endif
 
-            if (!cachedPropertiesById.TryGetValue(instanceId, out var cachedProperties))
+            if (!cachedPropertiesById.TryGetValue(objectId, out var cachedProperties))
             {
                 cachedProperties = new Dictionary<string, SerializedProperty>();
-                cachedPropertiesById[instanceId] = cachedProperties;
+                cachedPropertiesById[objectId] = cachedProperties;
             }
 
             if (!cachedProperties.TryGetValue(fieldName, out var cachedProperty))
@@ -193,6 +199,15 @@ namespace FK.uNodyEditor
             }
 
             return cachedProperty;
+        }
+
+        private static ObjectId GetObjectId(Object targetObject)
+        {
+#if UNITY_6000_3_OR_NEWER
+            return targetObject.GetEntityId();
+#else
+            return targetObject.GetInstanceID();
+#endif
         }
     }
 }

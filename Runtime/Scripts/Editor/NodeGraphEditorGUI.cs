@@ -5,8 +5,8 @@ using UnityEditor;
 using UnityEditor.AnimatedValues;
 using UnityEngine;
 using System.Reflection;
-using FK.uNody;
 using FK.uNody.Logic;
+using FK.uNody;
 
 namespace FK.uNodyEditor
 {
@@ -18,11 +18,15 @@ namespace FK.uNodyEditor
     {
         private static readonly Vector3[] polyLineTempArray = new Vector3[2];
 
-        private readonly List<Vector2> worldGridPoints = new();
         private readonly HashSet<UnityEngine.Object> selectionCache = new();
         private readonly HashSet<Node> culledNodes = new();
         private readonly List<Node> drawTargetNodes = new();
         private readonly HashSet<NodePort> flowPorts = new();
+        private readonly List<Vector2> connectionGridPoints = new();
+        private readonly List<Vector2> noodleWindowPoints = new();
+        private readonly List<Vector2> noodleBezierPositions = new();
+        private readonly List<RerouteReference> rerouteSelectionBuffer = new();
+        private readonly List<UnityEngine.Object> nodeSelectionBuffer = new();
 
         private AnimFloat flowAnim;
 
@@ -52,9 +56,12 @@ namespace FK.uNodyEditor
             {
                 UpdateControls();
 
-                UpdateAnim();
+                if (IsFastInteraction(Event.current))
+                    flowPorts.Clear();
+                else
+                    CollectFlowPorts();
 
-                CollectFlowPorts();
+                UpdateAnim();
                 DrawDraggedConnection();
                 DrawConnections();
                 DrawNodes();
@@ -70,6 +77,11 @@ namespace FK.uNodyEditor
             }
             GUILayout.EndArea();
         }
+
+        private static bool IsFastInteraction(Event current)
+            => CurrentActivity == NodeActivity.DragNode ||
+               IsPanning ||
+               (current.type == EventType.MouseDrag && (current.button == 1 || current.button == 2));
 
         public Vector2 WindowToGridPosition(Vector2 windowPosition)
             => (windowPosition - (DrawRect.center) - (PanOffset / Zoom)) * Zoom;
@@ -245,12 +257,23 @@ namespace FK.uNodyEditor
             Handles.DrawAAPolyLine(thickness, polyLineTempArray);
         }
 
+        private void DrawFastNoodle(NodePort outputPort, float thickness, List<Vector2> gridPoints)
+        {
+            Color originalHandlesColor = Handles.color;
+            Handles.color = GetPortFilledColor(outputPort);
+
+            for (int i = 0; i < gridPoints.Count - 1; i++)
+                DrawAAPolyLineNonAlloc(thickness, GridToWindowPosition(gridPoints[i]), GridToWindowPosition(gridPoints[i + 1]));
+
+            Handles.color = originalHandlesColor;
+        }
+
         /// <summary> Draw a bezier from output to input in grid coordinates </summary>
         public void DrawNoodle(NodePort outputPort, NodePort inputPort, Gradient gradient, float thickness, List<Vector2> gridPoints)
         {
             // convert grid points to window points
             for (int i = 0; i < gridPoints.Count; ++i)
-                worldGridPoints.Add(GridToWindowPosition(gridPoints[i]));
+                noodleWindowPoints.Add(GridToWindowPosition(gridPoints[i]));
 
             Color originalHandlesColor = Handles.color;
             Handles.color = gradient.Evaluate(0f);
@@ -259,7 +282,10 @@ namespace FK.uNodyEditor
    
             var outputNode = GetDrawerNode(outputPort, NodePort.IO.Output);
             if (!NodeSizes.TryGetValue(outputNode, out Vector2 outputNodeSize))
+            {
+                noodleWindowPoints.Clear();
                 return;
+            }
 
             Vector2 inputNodeSize = Vector2.zero;
             Node inputNode = null;
@@ -269,14 +295,14 @@ namespace FK.uNodyEditor
                 NodeSizes.TryGetValue(inputNode, out inputNodeSize);
             }
 
-            var bezierPositions = new List<Vector2>();
+            noodleBezierPositions.Clear();
 
             for (int i = 0; i < length - 1; i++)
             {
-                Vector2 startPoint = worldGridPoints[i];
-                Vector2 endPoint = worldGridPoints[i + 1];
+                Vector2 startPoint = noodleWindowPoints[i];
+                Vector2 endPoint = noodleWindowPoints[i + 1];
                 float distance = Vector2.Distance(startPoint, endPoint);
-                int division = Mathf.RoundToInt(0.2f * distance);
+                int division = Mathf.Max(1, Mathf.RoundToInt(0.2f * distance));
                 float zoomCoef = 50 / Zoom;
                 
                 if (startPoint.x < endPoint.x)
@@ -290,7 +316,7 @@ namespace FK.uNodyEditor
 
                     // Coloring and bezier drawing.
                     Vector2 bezierPrevious = startPoint;
-                    bezierPositions.Add(bezierPrevious);
+                    noodleBezierPositions.Add(bezierPrevious);
                     for (int j = 0; j <= division; j++)
                     {
                         float timePoint = j / (float)division;
@@ -300,7 +326,7 @@ namespace FK.uNodyEditor
                             Handles.color = gradient.Evaluate(gradientPoint);
 
                         Vector2 bezierNext = CalculateBezierPoint(startPoint, tangentA, tangentB, endPoint, timePoint);
-                        bezierPositions.Add(bezierNext);
+                        noodleBezierPositions.Add(bezierNext);
                         DrawAAPolyLineNonAlloc(thickness, bezierPrevious, bezierNext);
 
                         bezierPrevious = bezierNext;
@@ -324,7 +350,7 @@ namespace FK.uNodyEditor
                     wayPoint2.y = wayPoint1.y;
 
                     Vector2 bezierPrevious = startPoint;
-                    bezierPositions.Add(bezierPrevious);
+                    noodleBezierPositions.Add(bezierPrevious);
                     Vector2 p1 = Vector2.zero;
                     Vector2 tangentA = Vector2.zero;
                     Vector2 tangentB = Vector2.zero;
@@ -384,26 +410,26 @@ namespace FK.uNodyEditor
                         }
 
                         Vector2 bezierNext = CalculateBezierPoint(p1, tangentA, tangentB, p4, splitTimePoint / 0.33f);
-                        bezierPositions.Add(bezierNext);
+                        noodleBezierPositions.Add(bezierNext);
                         DrawAAPolyLineNonAlloc(thickness, bezierPrevious, bezierNext);
                         bezierPrevious = bezierNext;
                     }
                 }
             }
 
-            bezierPositions.Add(worldGridPoints[worldGridPoints.Count - 1]);
+            noodleBezierPositions.Add(noodleWindowPoints[noodleWindowPoints.Count - 1]);
 
-            if (isFlowTarget)
+            if (isFlowTarget && noodleBezierPositions.Count > 1)
             {
-                float index = (bezierPositions.Count - 1) * flowAnim.value;
-                var bezierPosition = bezierPositions[(int)index];
-                Handles.color = gradient.Evaluate(index / (bezierPositions.Count - 1));
+                float index = (noodleBezierPositions.Count - 1) * flowAnim.value;
+                var bezierPosition = noodleBezierPositions[Mathf.Min((int)index, noodleBezierPositions.Count - 1)];
+                Handles.color = gradient.Evaluate(index / (noodleBezierPositions.Count - 1));
                 DrawFlowDot(new Rect(bezierPosition - (new Vector2(4, 4) / Zoom), new Vector2(8, 8) / Zoom));
             }
 
             Handles.color = originalHandlesColor;
 
-            worldGridPoints.Clear();
+            noodleWindowPoints.Clear();
         }
 
         public Node GetDrawerNode(NodePort port, NodePort.IO io)
@@ -537,10 +563,11 @@ namespace FK.uNodyEditor
         public void DrawConnections()
         {
             Vector2 mousePos = Event.current.mousePosition;
-            List<RerouteReference> selections = preBoxSelectionReroute != null ? new List<RerouteReference>(preBoxSelectionReroute) : new List<RerouteReference>();
+            bool isFastInteraction = IsFastInteraction(Event.current);
+            rerouteSelectionBuffer.Clear();
+            if (preBoxSelectionReroute != null)
+                rerouteSelectionBuffer.AddRange(preBoxSelectionReroute);
             hoveredReroute = null;
-
-            var gridPoints = new List<Vector2>();
 
             Color col = GUI.color;
             foreach (var node in drawTargetNodes)
@@ -577,19 +604,24 @@ namespace FK.uNodyEditor
                         if (!input.IsConnectedTo(output))
                             input.Connect(output);
 
-                        var noodleGradient = GetNoodleGradient(output, input);
+                        connectionGridPoints.Clear();
+                        connectionGridPoints.Add(output.Rect.center);
+                        connectionGridPoints.AddRange(connection.Reroutes);
+                        connectionGridPoints.Add(input.Rect.center);
+
+                        if (!ShouldDrawNoodle(connectionGridPoints))
+                            continue;
+
                         float noodleThickness = GetNoodleThickness(output, input);
-
-                        if (!input.IsConnectedTo(output))
-                            input.Connect(output);
-
-                        gridPoints.Clear();
-                        gridPoints.Add(output.Rect.center);
-                        gridPoints.AddRange(connection.Reroutes);
-                        gridPoints.Add(input.Rect.center);
-
-
-                        DrawNoodle(output, input, noodleGradient, noodleThickness, gridPoints);
+                        if (isFastInteraction)
+                        {
+                            DrawFastNoodle(output, noodleThickness, connectionGridPoints);
+                        }
+                        else
+                        {
+                            var noodleGradient = GetNoodleGradient(output, input);
+                            DrawNoodle(output, input, noodleGradient, noodleThickness, connectionGridPoints);
+                        }
 
                         for (int i = 0; i < connection.Reroutes.Count; i++)
                         {
@@ -611,7 +643,7 @@ namespace FK.uNodyEditor
                             GUI.DrawTexture(rect, portStyle.active.background);
 
                             if (rect.Overlaps(selectionBox))
-                                selections.Add(rerouteReference);
+                                rerouteSelectionBuffer.Add(rerouteReference);
 
                             if (rect.Contains(mousePos))
                                 hoveredReroute = rerouteReference;
@@ -623,11 +655,56 @@ namespace FK.uNodyEditor
             GUI.color = col;
 
             if (Event.current.type != EventType.Layout && CurrentActivity == NodeActivity.DragGrid)
-                selectedReroutes = selections;
+            {
+                selectedReroutes.Clear();
+                selectedReroutes.AddRange(rerouteSelectionBuffer);
+            }
+        }
+
+        private bool ShouldDrawNoodle(List<Vector2> gridPoints)
+        {
+            if (gridPoints.Count == 0)
+                return false;
+
+            Vector2 windowPoint = GridToWindowPosition(gridPoints[0]);
+            float minX = windowPoint.x;
+            float maxX = windowPoint.x;
+            float minY = windowPoint.y;
+            float maxY = windowPoint.y;
+
+            for (int i = 1; i < gridPoints.Count; i++)
+            {
+                windowPoint = GridToWindowPosition(gridPoints[i]);
+                minX = Mathf.Min(minX, windowPoint.x);
+                maxX = Mathf.Max(maxX, windowPoint.x);
+                minY = Mathf.Min(minY, windowPoint.y);
+                maxY = Mathf.Max(maxY, windowPoint.y);
+            }
+
+            var bounds = Rect.MinMaxRect(minX, minY, maxX, maxY);
+            var visibleRect = DrawRect;
+            visibleRect.position = Vector2.zero;
+            visibleRect.xMin -= 128f;
+            visibleRect.yMin -= 128f;
+            visibleRect.xMax += 128f;
+            visibleRect.yMax += 128f;
+
+            return bounds.Overlaps(visibleRect);
         }
 
         private void UpdateAnim()
         {
+            if (flowPorts.Count == 0)
+            {
+                if (flowAnim != null && flowAnim.target != 0f)
+                {
+                    flowAnim.value = 0f;
+                    flowAnim.target = 0f;
+                }
+
+                return;
+            }
+
             if (flowAnim == null)
             {
                 flowAnim = new AnimFloat(0);
@@ -642,9 +719,49 @@ namespace FK.uNodyEditor
             }
         }
 
+        private void DrawFastNode(NodeEditor nodeEditor, Node node, Vector2 nodePos, Vector2 nodeSize, bool selected, Color guiColor)
+        {
+            Color originalColor = GUI.color;
+            Color headerColor = nodeEditor.GetHeaderTint();
+            Color bodyColor = nodeEditor.GetBodyTint();
+
+            Rect nodeRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, nodeSize.y);
+
+            if (selected)
+            {
+                Rect highlightRect = new Rect(nodeRect.position - Vector2.one * 3, nodeRect.size + Vector2.one * 6);
+                EditorGUI.DrawRect(highlightRect, NodeEditorPreferences.GetSettings(this).highlightColor);
+            }
+
+            EditorGUI.DrawRect(nodeRect, bodyColor);
+
+            float headerHeight = 24f;
+            Rect headerRect = new Rect(nodePos.x, nodePos.y, nodeSize.x, headerHeight);
+            EditorGUI.DrawRect(headerRect, headerColor);
+
+            GUI.color = Color.white;
+            GUI.Label(headerRect, node.name, NodeEditorStyles.NodeHeaderLabel);
+
+            GUI.color = originalColor;
+        }
+
+        private void UpdateFastNodeHoverAndSelection(Node node, Vector2 nodePos, Vector2 nodeSize, Vector2 mousePos, Rect selectionBox)
+        {
+            Rect windowRect = new Rect(nodePos, nodeSize);
+            if (windowRect.Contains(mousePos))
+                hoveredNode = node;
+
+            if (CurrentActivity == NodeActivity.DragGrid)
+            {
+                if (windowRect.Overlaps(selectionBox))
+                    nodeSelectionBuffer.Add(node);
+            }
+        }
+
         private void DrawNodes()
         {
             Event eCurrent = Event.current;
+            bool isFastInteraction = IsFastInteraction(eCurrent);
 
             if (eCurrent.type == EventType.Layout)
             {
@@ -673,7 +790,9 @@ namespace FK.uNodyEditor
                 hoveredPort = null;
             }
 
-            var preSelection = preBoxSelection != null ? new List<UnityEngine.Object>(preBoxSelection) : new List<UnityEngine.Object>();
+            nodeSelectionBuffer.Clear();
+            if (preBoxSelection != null)
+                nodeSelectionBuffer.AddRange(preBoxSelection);
 
             // Selection box stuff
             Vector2 boxStartPos = GridToWindowPositionNoClipped(dragBoxStart);
@@ -684,8 +803,6 @@ namespace FK.uNodyEditor
 
             //Save guiColor so we can revert it
             Color guiColor = GUI.color;
-
-            var removeEntries = new List<NodePort>();
 
             if (eCurrent.type == EventType.Layout)
             {
@@ -721,10 +838,10 @@ namespace FK.uNodyEditor
                     else if (culledNodes.Contains(node))
                         continue;
 
-                    if (eCurrent.type == EventType.Repaint)
-                        removeEntries.Clear();
-
                     NodeEditor nodeEditor = NodeEditor.GetEditor(node);
+
+                    if (nodeEditor.target == null)
+                        continue;
 
                     NodeEditor.portPositions.Clear();
 
@@ -735,86 +852,102 @@ namespace FK.uNodyEditor
                     bool selected = selectionCache.Contains(node);
 
                     float nodeWidth = nodeEditor.GetWidth();
-                    GUILayout.BeginArea(new Rect(nodePos, new Vector2(nodeWidth, 4000)));
+
+                    if (isFastInteraction && nodeSizes.TryGetValue(node, out nodeSize))
                     {
-                        if (selected)
-                        {
-                            GUI.color = NodeEditorPreferences.GetSettings(this).highlightColor;
-                            GUILayout.BeginVertical(nodeEditor.GetBodyHighlightStyle());
-                        }
-
-                        GUI.color = nodeEditor.GetHeaderTint();
-                        GUILayout.BeginVertical(nodeEditor.GetHeaderStyle());
-                        {
-                            GUI.color = Color.white;
-                            nodeEditor.OnHeaderGUI();
-                        }
-                        GUILayout.EndVertical();
-
-                        nodeSize = GUILayoutUtility.GetLastRect().size;
-
-                        GUILayout.Space(-0.01f);
-
-                        GUI.color = nodeEditor.GetBodyTint();
-                        GUILayout.BeginVertical(nodeEditor.GetBodyStyle());
-                        {
-                            GUI.color = Color.white;
-                            EditorGUI.BeginChangeCheck();
-
-                            EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
-                            //Draw node contents
-                            nodeEditor.OnBodyGUI();
-                            EditorGUIUtility.labelWidth = 0;
-                            //If user changed a value, notify other scripts through onUpdateNode
-                            if (EditorGUI.EndChangeCheck())
-                            {
-                                if (NodeEditor.onUpdateNode != null)
-                                    NodeEditor.onUpdateNode(node);
-                                EditorUtility.SetDirty(node);
-                                nodeEditor.serializedObject.ApplyModifiedProperties();
-                            }
-                        }
-                        GUILayout.EndVertical();
-
-                        nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
-
-                        GUI.color = nodeEditor.GetFooterTint();
-                        GUILayout.BeginVertical(nodeEditor.GetFooterStyle(), GUILayout.Height(12));
-                        GUILayout.EndVertical();
-                        GUI.color = Color.white;
-
-                        nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
-
-                        if (selected)
-                        {
-                            GUILayout.Space(-2.3f);
-                            GUILayout.EndVertical();
-                        }
-
-                        GUI.color = guiColor;
-
-                        //Cache data about the node for next frame
-                        if (eCurrent.type == EventType.Repaint)
-                        {
-                            nodeSizes[node] = nodeSize;
-                        }
-
-                        if (eCurrent.type != EventType.Layout && nodeSizes.TryGetValue(node, out nodeSize))
-                        {
-                            //Check if we are hovering this node
-                            Rect windowRect = new Rect(nodePos, nodeSize);
-                            if (windowRect.Contains(mousePos))
-                                hoveredNode = node;
-
-                            //If dragging a selection box, add nodes inside to selection
-                            if (CurrentActivity == NodeActivity.DragGrid)
-                            {
-                                if (windowRect.Overlaps(selectionBox))
-                                    preSelection.Add(node);
-                            }
-                        }
+                        DrawFastNode(nodeEditor, node, nodePos, nodeSize, selected, guiColor);
+                        UpdateFastNodeHoverAndSelection(node, nodePos, nodeSize, mousePos, selectionBox);
+                        continue;
                     }
-                    GUILayout.EndArea();
+
+                    try
+                    {
+                        GUILayout.BeginArea(new Rect(nodePos, new Vector2(nodeWidth, 4000)));
+                        {
+                            if (selected)
+                            {
+                                GUI.color = NodeEditorPreferences.GetSettings(this).highlightColor;
+                                GUILayout.BeginVertical(nodeEditor.GetBodyHighlightStyle());
+                            }
+
+                            GUI.color = nodeEditor.GetHeaderTint();
+                            GUILayout.BeginVertical(nodeEditor.GetHeaderStyle());
+                            {
+                                GUI.color = Color.white;
+                                nodeEditor.OnHeaderGUI();
+                            }
+                            GUILayout.EndVertical();
+
+                            nodeSize = GUILayoutUtility.GetLastRect().size;
+
+                            GUILayout.Space(-0.01f);
+
+                            GUI.color = nodeEditor.GetBodyTint();
+                            GUILayout.BeginVertical(nodeEditor.GetBodyStyle());
+                            {
+                                GUI.color = Color.white;
+                                EditorGUI.BeginChangeCheck();
+
+                                EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
+                                //Draw node contents
+                                nodeEditor.OnBodyGUI();
+                                EditorGUIUtility.labelWidth = 0;
+                                //If user changed a value, notify other scripts through onUpdateNode
+                                if (EditorGUI.EndChangeCheck())
+                                {
+                                    if (NodeEditor.onUpdateNode != null)
+                                        NodeEditor.onUpdateNode(node);
+                                    EditorUtility.SetDirty(node);
+                                    nodeEditor.serializedObject.ApplyModifiedProperties();
+                                }
+                            }
+                            GUILayout.EndVertical();
+
+                            nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
+
+                            GUI.color = nodeEditor.GetFooterTint();
+                            GUILayout.BeginVertical(nodeEditor.GetFooterStyle(), GUILayout.Height(12));
+                            GUILayout.EndVertical();
+                            GUI.color = Color.white;
+
+                            nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
+
+                            if (selected)
+                            {
+                                GUILayout.Space(-2.3f);
+                                GUILayout.EndVertical();
+                            }
+
+                            GUI.color = guiColor;
+
+                            //Cache data about the node for next frame
+                            if (eCurrent.type == EventType.Repaint)
+                            {
+                                nodeSizes[node] = nodeSize;
+                            }
+
+                            if (eCurrent.type != EventType.Layout && nodeSizes.TryGetValue(node, out nodeSize))
+                            {
+                                //Check if we are hovering this node
+                                Rect windowRect = new Rect(nodePos, nodeSize);
+                                if (windowRect.Contains(mousePos))
+                                    hoveredNode = node;
+
+                                //If dragging a selection box, add nodes inside to selection
+                                if (CurrentActivity == NodeActivity.DragGrid)
+                                {
+                                    if (windowRect.Overlaps(selectionBox))
+                                        nodeSelectionBuffer.Add(node);
+                                }
+                            }
+                        }
+                        GUILayout.EndArea();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogException(ex);
+                        GUIUtility.ExitGUI();
+                    }
                 }
 
                 if (node.Graph == target ||
@@ -844,7 +977,7 @@ namespace FK.uNodyEditor
             }
 
             if (eCurrent.type != EventType.Layout && CurrentActivity == NodeActivity.DragGrid)
-                Selection.objects = preSelection.ToArray();
+                SetSelectionIfChanged(nodeSelectionBuffer);
 
             EndZoom();
 
@@ -853,6 +986,28 @@ namespace FK.uNodyEditor
             //and thus, the code should not be included in build.
             if (onValidate != null && EditorGUI.EndChangeCheck())
                 onValidate.Invoke(Selection.activeObject, null);
+        }
+
+        private static void SetSelectionIfChanged(List<UnityEngine.Object> selection)
+        {
+            var currentSelection = Selection.objects;
+            if (currentSelection.Length == selection.Count)
+            {
+                bool hasChanged = false;
+                for (int i = 0; i < currentSelection.Length; i++)
+                {
+                    if (currentSelection[i] == selection[i])
+                        continue;
+
+                    hasChanged = true;
+                    break;
+                }
+
+                if (!hasChanged)
+                    return;
+            }
+
+            Selection.objects = selection.ToArray();
         }
 
         private bool ShouldBeCulled(Node node)

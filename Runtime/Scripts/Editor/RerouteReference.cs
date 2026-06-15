@@ -10,7 +10,7 @@ namespace FK.uNodyEditor
         private int rerouteIndex;
 
         public NodePort Port => port;
-        public int ConnectionIndex => ConnectionIndex;
+        public int ConnectionIndex => connectionIndex;
         public int RerouteIndex => rerouteIndex;
         public Vector2 Value
         {

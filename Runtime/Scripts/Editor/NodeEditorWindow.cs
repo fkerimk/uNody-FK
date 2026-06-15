@@ -94,11 +94,13 @@ namespace FK.uNodyEditor
         }
 
         [OnOpenAsset(0)]
+#if UNITY_6000_3_OR_NEWER
+        public static bool OnOpen(EntityId entityId, int line)
+        {
+            NodeGraph nodeGraph = EditorUtility.EntityIdToObject(entityId) as NodeGraph;
+#else
         public static bool OnOpen(int instanceID, int line)
         {
-#if UNITY_6000_3_OR_NEWER
-            NodeGraph nodeGraph = EditorUtility.EntityIdToObject(instanceID) as NodeGraph;
-#else
             NodeGraph nodeGraph = EditorUtility.InstanceIDToObject(instanceID) as NodeGraph;
 #endif
             if (nodeGraph != null)

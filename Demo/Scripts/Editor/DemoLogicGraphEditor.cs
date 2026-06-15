@@ -8,7 +8,7 @@ namespace FK.uNody.Logic.Demo
     using FK.uNodyEditor.Logic;
 
     // Associate this editor with the TestGraph class
-    [CustomNodeGraphEditor(typeof(DemoLogicGraph))]
+    [NodeGraphEditor.CustomNodeGraphEditor(typeof(DemoLogicGraph))]
     public class DemoLogicGraphEditor : LogicGraphEditor
     {
         public override string GetNodeMenuName(Type type)

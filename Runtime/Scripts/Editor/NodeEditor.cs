@@ -27,6 +27,9 @@ namespace FK.uNodyEditor {
 
         public virtual void OnHeaderGUI()
         {
+            if (target == null)
+                return;
+
             NodeEditorReflection.TryGetAttributeNodeIcon(target.GetType(), out var icon);
             if (icon != null)
             {

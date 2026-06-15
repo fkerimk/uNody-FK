@@ -339,6 +339,15 @@ namespace FK.uNodyEditor {
 
         public static void CreateFromTemplate(string initialName, string templatePath)
         {
+#if UNITY_6000_3_OR_NEWER
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(
+                EntityId.None,
+                ScriptableObject.CreateInstance<DoCreateCodeFile>(),
+                initialName,
+                scriptIcon,
+                templatePath
+            );
+#else
             ProjectWindowUtil.StartNameEditingIfProjectWindowExists(
                 0,
                 ScriptableObject.CreateInstance<DoCreateCodeFile>(),
@@ -346,9 +355,20 @@ namespace FK.uNodyEditor {
                 scriptIcon,
                 templatePath
             );
+#endif
         }
 
         /// Inherits from EndNameAction, must override EndNameAction.Action
+#if UNITY_6000_3_OR_NEWER
+        public class DoCreateCodeFile : UnityEditor.ProjectWindowCallback.AssetCreationEndAction
+        {
+            public override void Action(EntityId entityId, string pathName, string resourceFile)
+            {
+                Object o = CreateScript(pathName, resourceFile);
+                ProjectWindowUtil.ShowCreatedAsset(o);
+            }
+        }
+#else
         public class DoCreateCodeFile : UnityEditor.ProjectWindowCallback.EndNameEditAction
         {
             public override void Action(int instanceId, string pathName, string resourceFile)
@@ -357,6 +377,7 @@ namespace FK.uNodyEditor {
                 ProjectWindowUtil.ShowCreatedAsset(o);
             }
         }
+#endif
 
         /// <summary>Creates Script from Template's path.</summary>
         internal static Object CreateScript(string pathName, string templatePath)
