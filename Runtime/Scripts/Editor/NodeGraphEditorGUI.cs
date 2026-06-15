@@ -795,43 +795,42 @@ namespace FK.uNodyEditor
 
                     NodeEditor.portPositions.Clear();
 
-                    //Get node position
                     Vector2 nodePos = GridToWindowPositionNoClipped(node.NodePosition);
                     Vector2 nodeSize = Vector2.zero;
 
                     bool selected = selectionCache.Contains(node);
 
-                    float nodeWidth = nodeEditor.GetWidth();
-
-                    try
+                    if (drawBody)
                     {
-                        GUILayout.BeginArea(new Rect(nodePos, new Vector2(nodeWidth, 4000)));
+                        float nodeWidth = nodeEditor.GetWidth();
+
+                        try
                         {
-                            if (selected)
+                            GUILayout.BeginArea(new Rect(nodePos, new Vector2(nodeWidth, 4000)));
                             {
-                                GUI.color = NodeEditorPreferences.GetSettings(this).highlightColor;
-                                GUILayout.BeginVertical(nodeEditor.GetBodyHighlightStyle());
-                            }
-
-                            GUI.color = nodeEditor.GetHeaderTint();
-                            GUILayout.BeginVertical(nodeEditor.GetHeaderStyle());
-                            {
-                                GUI.color = Color.white;
-                                nodeEditor.OnHeaderGUI();
-                            }
-                            GUILayout.EndVertical();
-
-                            nodeSize = GUILayoutUtility.GetLastRect().size;
-
-                            GUILayout.Space(-0.01f);
-
-                            GUI.color = nodeEditor.GetBodyTint();
-                            GUILayout.BeginVertical(nodeEditor.GetBodyStyle());
-                            {
-                                GUI.color = Color.white;
-
-                                if (drawBody)
+                                if (selected)
                                 {
+                                    GUI.color = NodeEditorPreferences.GetSettings(this).highlightColor;
+                                    GUILayout.BeginVertical(nodeEditor.GetBodyHighlightStyle());
+                                }
+
+                                GUI.color = nodeEditor.GetHeaderTint();
+                                GUILayout.BeginVertical(nodeEditor.GetHeaderStyle());
+                                {
+                                    GUI.color = Color.white;
+                                    nodeEditor.OnHeaderGUI();
+                                }
+                                GUILayout.EndVertical();
+
+                                nodeSize = GUILayoutUtility.GetLastRect().size;
+
+                                GUILayout.Space(-0.01f);
+
+                                GUI.color = nodeEditor.GetBodyTint();
+                                GUILayout.BeginVertical(nodeEditor.GetBodyStyle());
+                                {
+                                    GUI.color = Color.white;
+
                                     EditorGUI.BeginChangeCheck();
 
                                     EditorGUIUtility.labelWidth = nodeWidth * 0.4f;
@@ -846,53 +845,45 @@ namespace FK.uNodyEditor
                                         nodeEditor.serializedObject.ApplyModifiedProperties();
                                     }
                                 }
-                            }
-                            GUILayout.EndVertical();
-
-                            nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
-
-                            GUI.color = nodeEditor.GetFooterTint();
-                            GUILayout.BeginVertical(nodeEditor.GetFooterStyle(), GUILayout.Height(12));
-                            GUILayout.EndVertical();
-                            GUI.color = Color.white;
-
-                            nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
-
-                            if (selected)
-                            {
-                                GUILayout.Space(-2.3f);
                                 GUILayout.EndVertical();
-                            }
 
-                            GUI.color = guiColor;
+                                nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
 
-                            //Cache data about the node for next frame
-                            if (eCurrent.type == EventType.Repaint)
-                            {
-                                nodeSizes[node] = nodeSize;
-                            }
+                                GUI.color = nodeEditor.GetFooterTint();
+                                GUILayout.BeginVertical(nodeEditor.GetFooterStyle(), GUILayout.Height(12));
+                                GUILayout.EndVertical();
+                                GUI.color = Color.white;
 
-                            if (eCurrent.type != EventType.Layout && nodeSizes.TryGetValue(node, out nodeSize))
-                            {
-                                //Check if we are hovering this node
-                                Rect windowRect = new Rect(nodePos, nodeSize);
-                                if (windowRect.Contains(mousePos))
-                                    hoveredNode = node;
+                                nodeSize.y += GUILayoutUtility.GetLastRect().size.y;
 
-                                //If dragging a selection box, add nodes inside to selection
-                                if (CurrentActivity == NodeActivity.DragGrid)
+                                if (selected)
                                 {
-                                    if (windowRect.Overlaps(selectionBox))
-                                        nodeSelectionBuffer.Add(node);
+                                    GUILayout.Space(-2.3f);
+                                    GUILayout.EndVertical();
                                 }
+
+                                GUI.color = guiColor;
+
+                                if (eCurrent.type == EventType.Repaint)
+                                    nodeSizes[node] = nodeSize;
                             }
+                            GUILayout.EndArea();
                         }
-                        GUILayout.EndArea();
+                        catch (Exception ex) when (ex is not ExitGUIException)
+                        {
+                            Debug.LogException(ex);
+                            GUIUtility.ExitGUI();
+                        }
                     }
-                    catch (Exception ex) when (ex is not ExitGUIException)
+
+                    if (eCurrent.type != EventType.Layout && nodeSizes.TryGetValue(node, out nodeSize))
                     {
-                        Debug.LogException(ex);
-                        GUIUtility.ExitGUI();
+                        Rect windowRect = new Rect(nodePos, nodeSize);
+                        if (windowRect.Contains(mousePos))
+                            hoveredNode = node;
+
+                        if (CurrentActivity == NodeActivity.DragGrid && windowRect.Overlaps(selectionBox))
+                            nodeSelectionBuffer.Add(node);
                     }
                 }
 
