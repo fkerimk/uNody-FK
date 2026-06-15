@@ -32,6 +32,8 @@ namespace FK.uNodyEditor
 
         private EditorWindow window;
 
+        private static readonly Dictionary<Type, MethodInfo> onValidateCache = new();
+
         public EditorWindow Window { get; set; }
 
         public Rect DrawRect { get; private set; }
@@ -255,17 +257,6 @@ namespace FK.uNodyEditor
             polyLineTempArray[1].x = p1.x;
             polyLineTempArray[1].y = p1.y;
             Handles.DrawAAPolyLine(thickness, polyLineTempArray);
-        }
-
-        private void DrawFastNoodle(NodePort outputPort, float thickness, List<Vector2> gridPoints)
-        {
-            Color originalHandlesColor = Handles.color;
-            Handles.color = GetPortFilledColor(outputPort);
-
-            for (int i = 0; i < gridPoints.Count - 1; i++)
-                DrawAAPolyLineNonAlloc(thickness, GridToWindowPosition(gridPoints[i]), GridToWindowPosition(gridPoints[i + 1]));
-
-            Handles.color = originalHandlesColor;
         }
 
         /// <summary> Draw a bezier from output to input in grid coordinates </summary>
@@ -563,7 +554,6 @@ namespace FK.uNodyEditor
         public void DrawConnections()
         {
             Vector2 mousePos = Event.current.mousePosition;
-            bool isFastInteraction = IsFastInteraction(Event.current);
             rerouteSelectionBuffer.Clear();
             if (preBoxSelectionReroute != null)
                 rerouteSelectionBuffer.AddRange(preBoxSelectionReroute);
@@ -613,15 +603,8 @@ namespace FK.uNodyEditor
                             continue;
 
                         float noodleThickness = GetNoodleThickness(output, input);
-                        if (isFastInteraction)
-                        {
-                            DrawFastNoodle(output, noodleThickness, connectionGridPoints);
-                        }
-                        else
-                        {
-                            var noodleGradient = GetNoodleGradient(output, input);
-                            DrawNoodle(output, input, noodleGradient, noodleThickness, connectionGridPoints);
-                        }
+                        var noodleGradient = GetNoodleGradient(output, input);
+                        DrawNoodle(output, input, noodleGradient, noodleThickness, connectionGridPoints);
 
                         for (int i = 0; i < connection.Reroutes.Count; i++)
                         {
@@ -734,9 +717,15 @@ namespace FK.uNodyEditor
             }
 
             MethodInfo onValidate = null;
-            if (Selection.activeObject != null && Selection.activeObject is Node)
+            if (Selection.activeObject is Node selectedNode)
             {
-                onValidate = Selection.activeObject.GetType().GetMethod("OnValidate");
+                var selectedType = selectedNode.GetType();
+                if (!onValidateCache.TryGetValue(selectedType, out onValidate))
+                {
+                    onValidate = selectedType.GetMethod("OnValidate");
+                    onValidateCache[selectedType] = onValidate;
+                }
+
                 if (onValidate != null)
                     EditorGUI.BeginChangeCheck();
             }
